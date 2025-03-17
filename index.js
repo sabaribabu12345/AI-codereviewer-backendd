@@ -57,7 +57,7 @@ app.post("/review", async (req, res) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "open-r1/olympiccoder-7b:free", // ✅ Free Model
+        model: "google/gemma-3-4b-it:free", // ✅ Free Model
         messages: [
           { role: "system", content: "You are an advanced AI code reviewer and optimizer." },
           { role: "user", content: prompt }
