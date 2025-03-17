@@ -1,0 +1,11 @@
+{
+    "build": {
+      "baseImage": "railway/nodejs",
+      "nixpacks": {
+        "plan": {
+          "start": "node index.js"
+        }
+      }
+    }
+  }
+  
