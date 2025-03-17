@@ -3,24 +3,18 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import axios from "axios";
-import Review from "./models/Review.js"; // Import MongoDB Model for Reviews
-
-
+import Review from "./models/Review.js"; // Import MongoDB Schema
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("🚀 AI Code Reviewer Backend is Running!");
-});
-
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const MONGO_URI = process.env.MONGO_URI;
 
-// ✅ Connect to MongoDB
+// ✅ Connect to MongoDB (Handles Errors Properly)
 mongoose
-  .connect(MONGO_URI)
+  .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("🚀 Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
@@ -32,12 +26,12 @@ app.post("/review", async (req, res) => {
 
   try {
     const prompt = `
-    You are an **expert AI software engineer**.  
-    Your task is to **analyze and improve the given code** by:  
-    - **Fixing performance issues**  
-    - **Improving readability & structure**  
-    - **Enhancing security**  
-    - **Following best coding practices**  
+    You are an expert AI software engineer.  
+    Your task is to analyze and improve the given code by:  
+    - Fixing performance issues  
+    - Improving readability & structure  
+    - Enhancing security  
+    - Following best coding practices  
 
     ---
     ### 🔹 **Original Code:**
@@ -45,10 +39,10 @@ app.post("/review", async (req, res) => {
 
     ---
     ### 🔹 **AI Code Review:**  
-    1️⃣ **Summary of what the code does**  
-    2️⃣ **Problems & Areas for Improvement**  
-    3️⃣ **Code Quality Score (1-10)**  
-    4️⃣ **Security & Performance Risks**  
+    1️⃣ Summary of what the code does  
+    2️⃣ Problems & Areas for Improvement  
+    3️⃣ Code Quality Score (1-10)  
+    4️⃣ Security & Performance Risks  
 
     ---
     ### 🔹 **Optimized Code:**  
@@ -56,14 +50,14 @@ app.post("/review", async (req, res) => {
 // AI will generate the improved version of this code here
     \`\`\`
     ---
-    🚀 **Ensure the optimized code is well-structured, secure, and error-free.**  
+    🚀 Ensure the optimized code is well-structured, secure, and error-free.  
     `;
 
     // ✅ Call OpenRouter API to Analyze & Fix Code
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "open-r1/olympiccoder-7b:free",
+        model: "open-r1/olympiccoder-7b:free", // ✅ Free Model
         messages: [
           { role: "system", content: "You are an advanced AI code reviewer and optimizer." },
           { role: "user", content: prompt }
@@ -80,11 +74,17 @@ app.post("/review", async (req, res) => {
     );
 
     // ✅ Extract AI Review and Optimized Code
-    const aiResponseText = response.data.choices[0].message.content;
+    console.log("🔍 AI Response:", response.data);
+    const aiResponseText = response.data?.choices?.[0]?.message?.content || "⚠️ AI was unable to process this request.";
     const [reviewPart, optimizedCodePart] = aiResponseText.split("### 🔹 **Optimized Code:**");
 
-    const reviewText = reviewPart.trim();
-    const optimizedCode = optimizedCodePart ? optimizedCodePart.replace(/\`\`\`/g, "").trim() : "No optimized code provided.";
+    const reviewText = reviewPart?.trim() || "⚠️ No AI review was generated.";
+    const optimizedCode = optimizedCodePart ? optimizedCodePart.replace(/\`\`\`/g, "").trim() : "⚠️ No optimized code provided.";
+
+    // ✅ Prevent Empty Reviews from Being Stored
+    if (!reviewText || reviewText.trim() === "⚠️ No AI review was generated.") {
+      return res.status(500).json({ error: "AI did not generate a valid review." });
+    }
 
     // ✅ Save Review to MongoDB
     const newReview = new Review({ code, review: reviewText, optimizedCode });
@@ -116,6 +116,11 @@ app.delete("/review/:id", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Error deleting review" });
   }
+});
+
+// ✅ Default Route (Fixes "Cannot GET /" Error)
+app.get("/", (req, res) => {
+  res.send("🚀 AI Code Reviewer Backend is Running!");
 });
 
 // ✅ Start Server
