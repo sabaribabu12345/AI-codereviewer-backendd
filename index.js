@@ -63,7 +63,7 @@ app.post("/review", async (req, res) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "openai/gpt-4o",
+        model: "mistral-7b-instruct",
         messages: [
           { role: "system", content: "You are an advanced AI code reviewer and optimizer." },
           { role: "user", content: prompt }
