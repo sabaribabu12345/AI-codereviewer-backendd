@@ -3,11 +3,17 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import axios from "axios";
-import Review from "./models/Review.js"; // Import MongoDB Model
+import Review from "./models/Review.js"; // Import MongoDB Model for Reviews
+
+
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("🚀 AI Code Reviewer Backend is Running!");
+});
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const MONGO_URI = process.env.MONGO_URI;
