@@ -162,17 +162,16 @@ app.post("/webhook", async (req, res) => {
 const analyzePRWithAI = async (diffUrl) => {
   try {
     const prompt = `
-You are an AI GitHub PR Reviewer. ONLY review the following modified files and ignore everything else:
+You are an AI GitHub PR Reviewer. ONLY review the files and lines that were changed in this pull request. 
 
-🔍 **Modified Files in This PR:**
-${changedFiles.map(f => `- ${f.filename}`).join("\n")}
+🔹 **DO NOT review unrelated files.**  
+🔹 **DO NOT mention unchanged code.**  
+🔹 **ONLY give feedback on modifications in the latest commit.**  
 
-⚡ Provide feedback ONLY on the changes within these files.
-DO NOT review unrelated code or files that were not modified.
-DO NOT suggest improvements to unchanged parts of the file.
+📂 **Files that changed in this PR:**  
+${diffUrl}  
 
-### Here is the PR diff:
-${changedFiles.map(f => `### File: ${f.filename}\n${f.patch}`).join("\n")}
+⚡ Provide feedback ONLY on these files and their modified lines.
 `;
 
 
