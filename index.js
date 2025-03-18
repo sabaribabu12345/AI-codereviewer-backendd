@@ -4,10 +4,17 @@ import cors from "cors";
 import mongoose from "mongoose";
 import axios from "axios";
 import Review from "./models/Review.js"; // Import MongoDB Schema
+import bodyParser from "body-parser";
+import dotenv from "dotenv";
+import { fetchPRDiff, postPRComment } from "./github.js";
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(bodyParser.json());
+
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const MONGO_URI = process.env.MONGO_URI;
@@ -122,7 +129,62 @@ app.delete("/review/:id", async (req, res) => {
 app.get("/", (req, res) => {
   res.send("🚀 AI Code Reviewer Backend is Running!");
 });
+// ✅ GitHub Webhook Route (Receives PR Events)
+app.post("/webhook", async (req, res) => {
+  const payload = req.body;
 
+  if (payload.action === "opened" && payload.pull_request) {
+    const { repository, pull_request } = payload;
+    const owner = repository.owner.login;
+    const repo = repository.name;
+    const prNumber = pull_request.number;
+
+    console.log(`🔍 New PR Opened: ${repo} #${prNumber}`);
+
+    // ✅ Fetch PR Diff
+    const prDiffUrl = await fetchPRDiff(owner, repo, prNumber);
+    if (!prDiffUrl) return res.status(500).json({ error: "Failed to fetch PR diff" });
+
+    // ✅ AI Review Processing (Google Gemini via OpenRouter)
+    const aiReview = await analyzePRWithAI(prDiffUrl);
+    if (!aiReview) return res.status(500).json({ error: "AI Review failed" });
+
+    // ✅ Post AI Review as a PR Comment
+    await postPRComment(owner, repo, prNumber, aiReview);
+
+    res.json({ message: "AI Review posted!" });
+  } else {
+    res.json({ message: "Event ignored" });
+  }
+});
+
+// ✅ AI Code Review Logic (Google Gemini via OpenRouter)
+const analyzePRWithAI = async (diffUrl) => {
+  try {
+    const prompt = `You are a senior software engineer reviewing a GitHub pull request. Analyze this PR diff and provide structured feedback on improvements, best practices, and potential bugs:\n\n${diffUrl}`;
+
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: "google/gemma-3-4b-it:free",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 600,
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data.choices[0].message.content;
+  } catch (error) {
+    console.error("AI Review Error:", error.response?.data || error.message);
+    return null;
+  }
+};
 // ✅ Start Server
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
