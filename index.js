@@ -161,7 +161,19 @@ app.post("/webhook", async (req, res) => {
 // ✅ AI Code Review Logic (Google Gemini via OpenRouter)
 const analyzePRWithAI = async (diffUrl) => {
   try {
-    const prompt = `You are a senior software engineer reviewing a GitHub pull request. Analyze this PR diff and provide structured feedback on improvements, best practices, and potential bugs:\n\n${diffUrl}`;
+    const prompt = `
+You are an AI GitHub PR Reviewer. Review the following pull request diff carefully:
+
+- **If the changes are small (typos, formatting, minor edits)** → Keep feedback minimal.
+- **If the changes impact logic, performance, or security** → Provide detailed structured feedback.
+- **Avoid over-explaining** obvious best practices unless necessary.
+
+🔍 Here is the PR diff:
+\n\n${diffUrl}
+
+⚡ Respond concisely. Only highlight **critical** areas that need improvement.
+`;
+
 
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -186,5 +198,6 @@ const analyzePRWithAI = async (diffUrl) => {
   }
 };
 // ✅ Start Server
+console.log(diffUrl)
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
