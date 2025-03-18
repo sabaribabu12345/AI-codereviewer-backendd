@@ -162,17 +162,18 @@ app.post("/webhook", async (req, res) => {
 const analyzePRWithAI = async (diffUrl) => {
   try {
     const prompt = `
-You are an AI GitHub PR Reviewer. Review the following pull request diff carefully:
+You are an AI GitHub PR Reviewer. Review ONLY the changed lines in this pull request. 
 
-- **If the changes are small (typos, formatting, minor edits)** → Keep feedback minimal.
-- **If the changes impact logic, performance, or security** → Provide detailed structured feedback.
-- **Avoid over-explaining** obvious best practices unless necessary.
+- **DO NOT review unrelated code.**
+- **DO NOT suggest fixes for unchanged parts of the file.**
+- **DO NOT mention code that already existed before this PR.**
 
-🔍 Here is the PR diff:
+🔍 Here is the PR diff containing only the changed lines:
 \n\n${diffUrl}
 
-⚡ Respond concisely. Only highlight **critical** areas that need improvement.
+⚡ Respond concisely and ONLY give feedback on these exact changes.
 `;
+
 
 
     const response = await axios.post(
