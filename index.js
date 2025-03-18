@@ -162,17 +162,18 @@ app.post("/webhook", async (req, res) => {
 const analyzePRWithAI = async (diffUrl) => {
   try {
     const prompt = `
-You are an AI GitHub PR Reviewer. Review ONLY the changed lines in this pull request. 
+You are an AI GitHub PR Reviewer. ONLY review the files and lines that were changed in this pull request. 
 
-- **DO NOT review unrelated code.**
-- **DO NOT suggest fixes for unchanged parts of the file.**
-- **DO NOT mention code that already existed before this PR.**
+🔹 **DO NOT review unrelated files.**  
+🔹 **DO NOT mention unchanged code.**  
+🔹 **ONLY give feedback on modifications in the latest commit.**  
 
-🔍 Here is the PR diff containing only the changed lines:
-\n\n${diffUrl}
+📂 **Files that changed in this PR:**  
+${diffUrl}  
 
-⚡ Respond concisely and ONLY give feedback on these exact changes.
+⚡ Provide feedback ONLY on these files and their modified lines.
 `;
+
 
 
 
