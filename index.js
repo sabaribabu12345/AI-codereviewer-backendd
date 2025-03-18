@@ -198,6 +198,5 @@ You are an AI GitHub PR Reviewer. Review the following pull request diff careful
   }
 };
 // ✅ Start Server
-console.log(diffUrl)
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
