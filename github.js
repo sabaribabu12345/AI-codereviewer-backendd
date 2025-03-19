@@ -22,20 +22,21 @@ export const fetchPRDiff = async (owner, repo, prNumber) => {
       },
     });
 
-    if (response.status !== 200) {
-      console.error("❌ GitHub API Error:", response.data);
+    console.log("✅ PR Diff Fetched Successfully!");
+
+    if (!response.data || response.data.trim() === "") {
+      console.error("❌ Error: PR Diff is empty!");
       return null;
     }
 
-    console.log("✅ PR Diff Fetched Successfully!");
-    console.log("🔍 PR Diff Data (First 500 chars):", response.data.substring(0, 500)); // Log only first 500 chars
-
-    return response.data; // Return PR diff data to be reviewed
+    console.log("🔍 PR Diff Full Response:", response.data); // Log the full diff
+    return response.data; // PR diff
   } catch (error) {
-    console.error("❌ Error Fetching PR Diff:", error.response?.data || error.message);
+    console.error("❌ GitHub API Error:", error.response?.data || error.message);
     return null;
   }
 };
+
 
 
 // ✅ Post AI Review as a Comment on the PR
