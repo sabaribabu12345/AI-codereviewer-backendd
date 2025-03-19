@@ -132,6 +132,9 @@ app.get("/", (req, res) => {
 // ✅ GitHub Webhook Route (Receives PR Events)
 app.post("/webhook", async (req, res) => {
   const payload = req.body;
+  console.log("📢 Received GitHub Webhook Event:");
+  console.log("🔍 Payload Action:", payload.action);
+  console.log("🔍 PR Details:", payload.pull_request?.title, " | PR #", payload.pull_request?.number);
 
   if (payload.action === "opened" && payload.pull_request) {
     const { repository, pull_request } = payload;
@@ -143,26 +146,40 @@ app.post("/webhook", async (req, res) => {
 
     // ✅ Fetch PR Diff
     const prDiffUrl = await fetchPRDiff(owner, repo, prNumber);
-    if (!prDiffUrl) return res.status(500).json({ error: "Failed to fetch PR diff" });
+    if (!prDiffUrl) {
+      console.error("❌ Failed to fetch PR diff");
+      return res.status(500).json({ error: "Failed to fetch PR diff" });
+    }
 
-    // ✅ AI Review Processing (Google Gemini via OpenRouter)
+    // ✅ AI Review Processing
+    console.log("📢 Sending PR Diff to AI...");
     const aiReview = await analyzePRWithAI(prDiffUrl);
-    if (!aiReview) return res.status(500).json({ error: "AI Review failed" });
+
+    if (!aiReview) {
+      console.error("❌ AI Review failed");
+      return res.status(500).json({ error: "AI Review failed" });
+    }
 
     // ✅ Post AI Review as a PR Comment
+    console.log("📢 Posting AI Review Comment...");
     await postPRComment(owner, repo, prNumber, aiReview);
 
     res.json({ message: "AI Review posted!" });
   } else {
+    console.log("ℹ️ Webhook Event Ignored (Not a PR Open Event)");
     res.json({ message: "Event ignored" });
   }
 });
 
+
 // ✅ AI Code Review Logic (Google Gemini via OpenRouter)
 const analyzePRWithAI = async (diffUrl) => {
   try {
+    console.log("📢 Sending PR Diff to AI for Review...");
+    console.log("🔍 AI Input Data (First 500 chars):", diffUrl.substring(0, 500));
+
     const prompt = `
-You are an AI GitHub PR Reviewer. ONLY review the files and lines that were changed in this pull request. 
+You are an AI GitHub PR Reviewer. ONLY review the files and lines that were changed in this pull request.
 
 🔹 **DO NOT review unrelated files.**  
 🔹 **DO NOT mention unchanged code.**  
@@ -173,9 +190,6 @@ ${diffUrl}
 
 ⚡ Provide feedback ONLY on these files and their modified lines.
 `;
-
-
-
 
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -193,12 +207,16 @@ ${diffUrl}
       }
     );
 
+    console.log("✅ AI Response Received!");
+    console.log("🔍 AI Output (First 500 chars):", response.data.choices[0].message.content.substring(0, 500));
+
     return response.data.choices[0].message.content;
   } catch (error) {
-    console.error("AI Review Error:", error.response?.data || error.message);
+    console.error("❌ AI Review Error:", error.response?.data || error.message);
     return null;
   }
 };
+
 // ✅ Start Server
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
